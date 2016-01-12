@@ -1,1 +1,1 @@
-initSidebarItems({"macro":[["try_trace!",""]],"struct":[["FrameInfo",""],["StackInfo",""],["Trace",""]]});
+initSidebarItems({"struct":[["FrameInfo",""],["StackInfo",""],["Trace",""]]});
