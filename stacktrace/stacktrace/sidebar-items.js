@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["FrameInfo","Information on a function call frame, for use in a stack trace."],["StackInfo","A stack trace. Contains a vector of function call frames, in call stack order."],["Trace","An error 'annotated' with a stack trace."]]});
+initSidebarItems({"macro":[["trace!","Helper macro for defining a `Trace` struct, and instances of `From<Trace<B>>` for `Trace<A>`."]]});

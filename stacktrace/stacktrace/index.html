@@ -9,6 +9,7 @@
 
     <title>stacktrace - Rust</title>
 
+    <link rel="stylesheet" type="text/css" href="../rustdoc.css">
     <link rel="stylesheet" type="text/css" href="../main.css">
 
     
@@ -45,27 +46,92 @@
             <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
                 [<span class='inner'>&#x2212;</span>]
             </a>
-        </span><a id='src-0' class='srclink' href='../src/stacktrace/lib.rs.html#1-266' title='goto source code'>[src]</a></span></h1>
-<div class='docblock'><p>A library for pretty-printing stack traces.</p>
+        </span><a id='src-0' class='srclink' href='../src/stacktrace/src/lib.rs.html#1-270' title='goto source code'>[src]</a></span></h1>
+<div class='docblock'><p>A library for using stack traces with <a href="https://doc.rust-lang.org/std/result/index.html"><code>Result</code></a>.</p>
 
-<p>Programmers typically find stack traces useful for debugging executables.
-One way to get a trace for a thread is by panicking with the environment variable
-<code>RUST_BACKTRACE=1</code>.
-This is unfortunately hard to use.</p>
-
-<p>Alex Crichton&#39;s <a href="https://crates.io/crates/backtrace/">backtrace</a> crate
-implements the work required for actually getting information about the call stack on a variety
+<p>Alex Crichton&#39;s excellent <a href="https://crates.io/crates/backtrace/">backtrace</a> crate
+does the work required for actually getting information about the call stack on a variety
 of platforms.
 <a href="https://crates.io/crates/stacktrace/">Stacktrace</a>
-tries to make that information more ergonomic to acquire and use.</p>
+tries to make that information more ergonomic to use.</p>
 
 <h1 id='quick-start' class='section-header'><a href='#quick-start'>Quick Start</a></h1>
+<p>In your <code>Cargo.toml</code>:</p>
+
+<pre><code class="language-toml">[dependencies]
+stacktrace = &quot;0.2&quot;
+</code></pre>
+
+<p>In your project:</p>
+
+<pre class='rust rust-example-rendered'>
+<span class='attribute'>#[<span class='ident'>macro_use</span>]</span> <span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>stacktrace</span>;
+
+<span class='macro'>trace</span><span class='macro'>!</span>{}</pre>
+
+<h1 id='example-use' class='section-header'><a href='#example-use'>Example use</a></h1>
+<p>See also these <a href="https://github.com/pierzchalski/stacktrace-rs/tree/master/examples">examples</a>.</p>
+
+<pre class='rust rust-example-rendered'>
+<span class='attribute'>#[<span class='ident'>macro_use</span>]</span> <span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>stacktrace</span>;
+
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Error1</span>(<span class='ident'>usize</span>);
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Error2</span>(<span class='ident'>String</span>);
+
+<span class='kw'>impl</span> <span class='ident'>From</span><span class='op'>&lt;</span><span class='ident'>Error1</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>Error2</span> {
+    <span class='kw'>fn</span> <span class='ident'>from</span>(<span class='ident'>err</span>: <span class='ident'>Error1</span>) <span class='op'>-&gt;</span> <span class='ident'>Error2</span> {
+        <span class='ident'>Error2</span>(<span class='macro'>format</span><span class='macro'>!</span>(<span class='string'>&quot;{}&quot;</span>, <span class='ident'>err</span>.<span class='number'>0</span>))
+    }
+}
+
+<span class='macro'>trace</span><span class='macro'>!</span>{<span class='ident'>Error1</span> <span class='op'>=&gt;</span> <span class='ident'>Error2</span>}
+
+<span class='kw'>fn</span> <span class='ident'>makes_a_traced_error</span>() <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(), <span class='ident'>Trace</span><span class='op'>&lt;</span><span class='ident'>Error1</span><span class='op'>&gt;&gt;</span> {
+    <span class='macro'>try</span><span class='macro'>!</span>(<span class='prelude-val'>Err</span>(<span class='ident'>Error1</span>(<span class='number'>1337</span>))); <span class='comment'>// Uses generic instance of &quot;From&lt;Err&gt;&quot; for &quot;Trace&lt;Err&gt;&quot;</span>
+    <span class='prelude-val'>Ok</span>(())
+}
+
+<span class='kw'>fn</span> <span class='ident'>propagates_a_traced_error</span>() <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(), <span class='ident'>Trace</span><span class='op'>&lt;</span><span class='ident'>Error2</span><span class='op'>&gt;&gt;</span> {
+    <span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>makes_a_traced_error</span>()); <span class='comment'>// Uses the macro-generated instance of &quot;From&lt;Trace&lt;Error1&gt;&gt;&quot; for &quot;Trace&lt;Error2&gt;&quot;</span>
+    <span class='prelude-val'>Ok</span>(())
+}</pre>
+
+<p>See the section <a href="#usage_information">Usage information</a> for more.</p>
+
+<p><a name=usage_information></a></p>
+
+<h1 id='usage-information' class='section-header'><a href='#usage-information'>Usage information</a></h1>
+<p>This crate is intended for use with binary crates.
+It provides a macro to define and use a <code>Trace</code> struct, which wraps errors with an associated
+stacktrace. The macro also defines instances of <a href="https://doc.rust-lang.org/std/convert/trait.From.html"><code>From</code></a>
+for use with the standard <a href="https://doc.rust-lang.org/std/macro.try!.html"><code>try!</code></a> macro.</p>
+
+<p>These trait implementations are the reason the <code>Trace</code> struct needs to be defined with a macro in the user&#39;s
+crate, since two things prevent them being defined externally:</p>
+
 <ul>
-<li>For getting a stack trace with a pretty-printing instance of <code>std::fmt::Debug</code>, see
-<a href="struct.StackInfo.html"><code>StackInfo</code></a>.</li>
-<li>For utilities for working with <code>std::result::Result</code>, see
-<a href="struct.Trace.html"><code>Trace</code></a>.</li>
+<li>Because of the generic <code>impl&lt;A&gt; From&lt;A&gt; for A</code> in the standard library, we can&#39;t implement a
+generic <code>impl&lt;A, B: From&lt;A&gt;&gt; From&lt;Trace&lt;A&gt;&gt; for Trace&lt;B&gt;</code>, since <code>rustc</code> first sees this
+as <code>impl From&lt;Trace&lt;_&gt;&gt; for Trace&lt;_&gt;</code>.</li>
+<li>If <code>Trace</code> were defined in this crate, then users wouldn&#39;t be able to implement <code>From&lt;A&gt; for Trace&lt;B&gt;</code>
+because of the trait coherence rules.</li>
 </ul>
+
+<p>The call <code>trace!{StructName; A =&gt; B, C =&gt; D, ...}</code> will produce a struct <code>StructName&lt;E&gt;</code> with
+the following implementations:</p>
+
+<ul>
+<li><a href="https://doc.rust-lang.org/std/ops/trait.Deref.html"><code>Deref&lt;E&gt;</code></a></li>
+<li><a href="https://doc.rust-lang.org/std/ops/trait.DerefMut.html"><code>DerefMut&lt;E&gt;</code></a></li>
+<li><code>From&lt;A&gt; for StructName&lt;B&gt;</code>, which requires <code>From&lt;A&gt; for B</code></li>
+<li><code>From&lt;C&gt; for StructName&lt;D&gt;</code>, etc.</li>
+<li><code>From&lt;StructName&lt;A&gt;&gt; for StructName&lt;B&gt;</code>, which also requires <code>From&lt;A&gt; for B</code></li>
+<li><code>From&lt;StructName&lt;C&gt;&gt; for StructName&lt;D&gt;</code>, etc.</li>
+<li><code>Debug</code>, which will print the inner error then the stack trace in the same format as the one
+defined for <a href="http://alexcrichton.com/backtrace-rs/backtrace/struct.Backtrace.html"><code>Backtrace</code></a>.</li>
+</ul>
+
+<p>If unspecified, <code>StructName</code> defaults to <code>Trace</code>.</p>
 
 <h1 id='build-profiles' class='section-header'><a href='#build-profiles'>Build profiles</a></h1>
 <p>For release builds, consider enabling debugging symbols if you want to keep useful
@@ -76,41 +142,14 @@ debug = true
 </code></pre>
 
 <p>For more information, see <a href="http://doc.crates.io/manifest.html#the-%5Bprofile.*%5D-sections">here</a>.</p>
-
-<h1 id='notes' class='section-header'><a href='#notes'>Notes</a></h1>
-<ul>
-<li>All traces will have various calls into <code>backtrace</code> and <code>stacktrace</code> as their first few
-entries. The particular entries will depend on platform as well.</li>
-<li>The structs storing call stack information use heap-allocated <code>String</code>s.
-This may be relevant in environments where allocation might fail, such
-as some low-level projects.</li>
-</ul>
-</div><h2 id='structs' class='section-header'><a href="#structs">Structs</a></h2>
+</div><h2 id='reexports' class='section-header'><a href="#reexports">Reexports</a></h2>
+<table><tr><td><code>pub extern crate backtrace;</code></td></tr></table><h2 id='macros' class='section-header'><a href="#macros">Macros</a></h2>
 <table>
                     <tr class=' module-item'>
-                        <td><a class='struct' href='struct.FrameInfo.html'
-                               title='stacktrace::FrameInfo'>FrameInfo</a></td>
+                        <td><a class='macro' href='macro.trace!.html'
+                               title='stacktrace::trace!'>trace!</a></td>
                         <td class='docblock short'>
-                             <p>Information on a function call frame, for use in a stack trace.</p>
-
-                        </td>
-                    </tr>
-                
-                    <tr class=' module-item'>
-                        <td><a class='struct' href='struct.StackInfo.html'
-                               title='stacktrace::StackInfo'>StackInfo</a></td>
-                        <td class='docblock short'>
-                             <p>A stack trace. Contains a vector of function call frames, in call stack order.</p>
-
-                        </td>
-                    </tr>
-                
-                    <tr class=' module-item'>
-                        <td><a class='struct' href='struct.Trace.html'
-                               title='stacktrace::Trace'>Trace</a></td>
-                        <td class='docblock short'>
-                             <p>An error &#39;annotated&#39; with a stack trace.</p>
-
+                             <p>Helper macro for defining a <code>Trace</code> struct, and instances of <code>From&lt;Trace&lt;B&gt;&gt;</code> for <code>Trace&lt;A&gt;</code>.</p>
                         </td>
                     </tr>
                 </table></section>
@@ -156,7 +195,7 @@ as some low-level projects.</li>
 
                 <p>
                     Search functions by type signature (e.g.
-                    <code>vec -> usize</code>)
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
                 </p>
             </div>
         </div>
@@ -172,6 +211,6 @@ as some low-level projects.</li>
     <script src="../jquery.js"></script>
     <script src="../main.js"></script>
     
-    <script async src="../search-index.js"></script>
+    <script defer src="../search-index.js"></script>
 </body>
 </html>
